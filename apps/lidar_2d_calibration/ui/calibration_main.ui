@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CalibrationMainWindow</class>
+ <widget class="QMainWindow" name="CalibrationMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1080</width>
+    <height>900</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>2D LiDAR Calibration UI (merged_lidar-centric)</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="mainLayout">
+    <property name="spacing">
+     <number>4</number>
+    </property>
+    <property name="leftMargin">
+     <number>4</number>
+    </property>
+    <property name="topMargin">
+     <number>4</number>
+    </property>
+    <property name="rightMargin">
+     <number>4</number>
+    </property>
+    <property name="bottomMargin">
+     <number>4</number>
+    </property>
+    <!-- Left: Scan Canvas (placeholder) -->
+    <item>
+     <widget class="QWidget" name="canvasPlaceholder" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>3</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>500</width>
+        <height>400</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <!-- Right: Control Panel (scrollable) -->
+    <item>
+     <widget class="QScrollArea" name="controlScrollArea">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>430</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>450</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="controlPanel">
+       <layout class="QVBoxLayout" name="controlLayout">
+        <property name="spacing">
+         <number>6</number>
+        </property>
+        <!-- Network (UDP) Settings -->
+        <item>
+         <widget class="QGroupBox" name="groupTopics">
+          <property name="title">
+           <string>Network (UDP)</string>
+          </property>
+          <layout class="QFormLayout" name="topicFormLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="lblFrontTopic">
+             <property name="text">
+              <string>Front (ip:port):</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <layout class="QHBoxLayout" name="frontEndpointLayout">
+             <item>
+              <widget class="QLineEdit" name="editFrontEndpoint">
+               <property name="text">
+                <string>192.168.192.100:6060</string>
+               </property>
+               <property name="maximumWidth">
+                <number>150</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnDiscoverFront">
+               <property name="text">
+                <string>Find</string>
+               </property>
+               <property name="maximumWidth">
+                <number>70</number>
+               </property>
+               <property name="toolTip">
+                <string>Front 포트를 스캔해 송신 IP를 자동으로 찾습니다</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="lblRearTopic">
+             <property name="text">
+              <string>Rear (ip:port):</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <layout class="QHBoxLayout" name="rearEndpointLayout">
+             <item>
+              <widget class="QLineEdit" name="editRearEndpoint">
+               <property name="text">
+                <string>192.168.192.101:6061</string>
+               </property>
+               <property name="maximumWidth">
+                <number>150</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnDiscoverRear">
+               <property name="text">
+                <string>Find</string>
+               </property>
+               <property name="maximumWidth">
+                <number>70</number>
+               </property>
+               <property name="toolTip">
+                <string>Rear 포트를 스캔해 송신 IP를 자동으로 찾습니다</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="2" column="0" colspan="2">
+            <widget class="QPushButton" name="btnReconnect">
+             <property name="text">
+              <string>Reconnect</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- Sensor Flip (upside-down mounting, roll=π) -->
+        <item>
+         <widget class="QGroupBox" name="groupSensorFlip">
+          <property name="title">
+           <string>Sensor Flip (Z-180°)</string>
+          </property>
+          <layout class="QHBoxLayout" name="sensorFlipLayout">
+           <item>
+            <widget class="QCheckBox" name="chkFlipFront">
+             <property name="text">
+              <string>Front Flip</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="chkFlipRear">
+             <property name="text">
+              <string>Rear Flip</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- Jog Control: Front LiDAR -->
+        <item>
+         <widget class="QGroupBox" name="groupJogFront">
+          <property name="title">
+           <string>Jog: Front LiDAR (merged→front)</string>
+          </property>
+          <layout class="QFormLayout" name="jogFrontLayout">
+           <item row="0" column="0">
+            <widget class="QLabel"><property name="text"><string>X (m):</string></property></widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="spinJogFrontX">
+             <property name="decimals"><number>4</number></property>
+             <property name="minimum"><double>-10.0</double></property>
+             <property name="maximum"><double>10.0</double></property>
+             <property name="singleStep"><double>0.01</double></property>
+             <property name="value"><double>0.0</double></property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel"><property name="text"><string>Y (m):</string></property></widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QDoubleSpinBox" name="spinJogFrontY">
+             <property name="decimals"><number>4</number></property>
+             <property name="minimum"><double>-10.0</double></property>
+             <property name="maximum"><double>10.0</double></property>
+             <property name="singleStep"><double>0.01</double></property>
+             <property name="value"><double>0.0</double></property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel"><property name="text"><string>Yaw (°):</string></property></widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QDoubleSpinBox" name="spinJogFrontYaw">
+             <property name="decimals"><number>2</number></property>
+             <property name="minimum"><double>-180.0</double></property>
+             <property name="maximum"><double>180.0</double></property>
+             <property name="singleStep"><double>0.5</double></property>
+             <property name="value"><double>0.0</double></property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- Jog Control: Rear LiDAR -->
+        <item>
+         <widget class="QGroupBox" name="groupJogRear">
+          <property name="title">
+           <string>Jog: Rear LiDAR (merged→rear)</string>
+          </property>
+          <layout class="QFormLayout" name="jogRearLayout">
+           <item row="0" column="0">
+            <widget class="QLabel"><property name="text"><string>X (m):</string></property></widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="spinJogRearX">
+             <property name="decimals"><number>4</number></property>
+             <property name="minimum"><double>-10.0</double></property>
+             <property name="maximum"><double>10.0</double></property>
+             <property name="singleStep"><double>0.01</double></property>
+             <property name="value"><double>0.0</double></property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel"><property name="text"><string>Y (m):</string></property></widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QDoubleSpinBox" name="spinJogRearY">
+             <property name="decimals"><number>4</number></property>
+             <property name="minimum"><double>-10.0</double></property>
+             <property name="maximum"><double>10.0</double></property>
+             <property name="singleStep"><double>0.01</double></property>
+             <property name="value"><double>0.0</double></property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel"><property name="text"><string>Yaw (°):</string></property></widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QDoubleSpinBox" name="spinJogRearYaw">
+             <property name="decimals"><number>2</number></property>
+             <property name="minimum"><double>-180.0</double></property>
+             <property name="maximum"><double>180.0</double></property>
+             <property name="singleStep"><double>0.5</double></property>
+             <property name="value"><double>0.0</double></property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- Load TF from config button -->
+        <item>
+         <widget class="QPushButton" name="btnLoadURDF">
+          <property name="text">
+           <string>Load Initial TF</string>
+          </property>
+         </widget>
+        </item>
+        <!-- Region Management -->
+        <item>
+         <widget class="QGroupBox" name="groupRegions">
+          <property name="title">
+           <string>Calibration Regions</string>
+          </property>
+          <layout class="QVBoxLayout" name="regionLayout">
+           <item>
+            <widget class="QListWidget" name="listRegions">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>120</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="regionButtonLayout">
+             <item>
+              <widget class="QPushButton" name="btnAddRegion">
+               <property name="text">
+                <string>+ Add Region</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnRemoveRegion">
+               <property name="text">
+                <string>Remove</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnClearRegions">
+               <property name="text">
+                <string>Clear All</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- ICP Parameters -->
+        <item>
+         <widget class="QGroupBox" name="groupICP">
+          <property name="title">
+           <string>ICP Parameters</string>
+          </property>
+          <layout class="QFormLayout" name="icpFormLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="lblMaxIter">
+             <property name="text"><string>Max Iterations:</string></property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSpinBox" name="spinMaxIter">
+             <property name="minimum"><number>1</number></property>
+             <property name="maximum"><number>500</number></property>
+             <property name="value"><number>50</number></property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="lblMaxCorrDist">
+             <property name="text"><string>Max Corr Dist (m):</string></property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QDoubleSpinBox" name="spinMaxCorrDist">
+             <property name="decimals"><number>2</number></property>
+             <property name="minimum"><double>0.01</double></property>
+             <property name="maximum"><double>5.0</double></property>
+             <property name="singleStep"><double>0.05</double></property>
+             <property name="value"><double>0.30</double></property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="lblMinCorr">
+             <property name="text"><string>Min Correspondences:</string></property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QSpinBox" name="spinMinCorr">
+             <property name="minimum"><number>3</number></property>
+             <property name="maximum"><number>500</number></property>
+             <property name="value"><number>30</number></property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="lblDownsample">
+             <property name="text"><string>Downsample Stride:</string></property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QSpinBox" name="spinDownsample">
+             <property name="minimum"><number>1</number></property>
+             <property name="maximum"><number>50</number></property>
+             <property name="value"><number>1</number></property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- Run Button -->
+        <item>
+         <widget class="QPushButton" name="btnRunCalibration">
+          <property name="text">
+           <string>Run Calibration</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>40</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+         </widget>
+        </item>
+        <!-- Results -->
+        <item>
+         <widget class="QGroupBox" name="groupResults">
+          <property name="title">
+           <string>Results</string>
+          </property>
+          <layout class="QVBoxLayout" name="resultsLayout">
+           <item>
+            <widget class="QTextEdit" name="textResults">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>180</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <family>Monospace</family>
+               <pointsize>9</pointsize>
+              </font>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- Symmetry Review -->
+        <item>
+         <widget class="QGroupBox" name="groupSymmetry">
+          <property name="title">
+           <string>Symmetry Review</string>
+          </property>
+          <layout class="QVBoxLayout" name="symmetryLayout">
+           <item>
+            <widget class="QTextEdit" name="textSymmetry">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>130</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <family>Monospace</family>
+               <pointsize>9</pointsize>
+              </font>
+             </property>
+             <property name="placeholderText">
+              <string>Click 'Check Symmetry' to analyze...</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="symmetryButtonLayout">
+             <item>
+              <widget class="QPushButton" name="btnCheckSymmetry">
+               <property name="text">
+                <string>Check Symmetry</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnMirrorFrontToRear">
+               <property name="text">
+                <string>Mirror Front-&gt;Rear</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnSymmetricCorrection">
+               <property name="text">
+                <string>Symmetric Correction</string>
+               </property>
+               <property name="toolTip">
+                <string>Adjust both front and rear to be perfectly symmetric (splits difference equally)</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- Action Buttons -->
+        <item>
+         <layout class="QHBoxLayout" name="actionButtonLayout">
+          <item>
+           <widget class="QPushButton" name="btnSaveResults">
+            <property name="text">
+             <string>Save Results</string>
+            </property>
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnSaveCurrentJog">
+            <property name="text">
+             <string>Save Current Jog</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnApplyBroadcast">
+            <property name="text">
+             <string>Apply &amp; Broadcast</string>
+            </property>
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <!-- Spacer -->
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

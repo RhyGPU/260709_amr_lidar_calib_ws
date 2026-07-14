@@ -1,0 +1,7 @@
+# 2D LiDAR Calibration (Windows, UDP) — runtime dependencies
+# 결정: PySide6 + scipy 제거 (docs/adr/ADR-001) — 설치 용량 최소화
+numpy>=1.24
+PySide6>=6.5
+PyYAML>=6.0
+# tools/discover.py 전용 (선택) — 본체 실행에는 불필요
+netifaces>=0.11

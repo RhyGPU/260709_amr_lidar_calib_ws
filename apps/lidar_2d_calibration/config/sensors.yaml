@@ -1,0 +1,30 @@
+# sensors.yaml — SICK nanoScan3 2-sensor configuration
+# 스키마 권위: docs/PORTING_PLAN.md §3.3
+# 값 출처: tf_publisher_params.yaml (base_link 기준 장착 측정값)
+
+network:
+  bind_ip: "0.0.0.0"          # 수신 바인드 주소 (모든 인터페이스)
+  front:
+    ip: "192.168.192.100"      # 전방 센서 IP
+    port: 6060                 # 전방 센서 UDP 수신 포트 (단위: 없음)
+  rear:
+    ip: "192.168.192.101"      # 후방 센서 IP
+    port: 6061                 # 후방 센서 UDP 수신 포트 (단위: 없음)
+  discriminate_by: "port"      # 센서 구분 방식: "port" | "source_ip"
+
+mounting:                      # base_link 기준 외부 파라미터 (tf_publisher_params.yaml 대응)
+  front:
+    tx: 0.3656                 # X 오프셋 (단위: m)
+    ty: 0.2534                 # Y 오프셋 (단위: m)
+    yaw_deg: 45.34             # Yaw 회전 (단위: deg, CCW+)
+    flipped: true              # 상하 반전 여부 (roll=pi 장착)
+  rear:
+    tx: -0.387                 # X 오프셋 (단위: m)
+    ty: -0.3098                # Y 오프셋 (단위: m)
+    yaw_deg: -135.05           # Yaw 회전 (단위: deg, CCW+)
+    flipped: true              # 상하 반전 여부 (roll=pi 장착)
+
+preprocessing:
+  min_range_m: 0.1             # 유효 측정 최솟값 (단위: m)
+  max_range_m: 40.0            # 유효 측정 최댓값 (단위: m — SICK TiM320 도달거리에 맞춰 상향, was 5.0)
+  enable_average_filter: true  # 이동 평균 필터 사용 여부
