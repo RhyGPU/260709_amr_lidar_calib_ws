@@ -1,0 +1,18 @@
+[project]
+name = "amr-lidar"
+version = "1.0.0"
+description = "Live access to the Foil_A082 AMR 2D LiDAR via the SEER API, with a UDP publishing relay."
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24",
+    "matplotlib>=3.6",
+]
+
+[project.scripts]
+amr-lidar-viewer = "amr_lidar.viewer:main"
+amr-lidar-relay-server = "amr_lidar.relay_server:main"
+amr-lidar-relay-client = "amr_lidar.relay_client:main"
+amr-lidar-ms3-emitter = "amr_lidar.ms3_emitter:main"
+
+[tool.setuptools]
+packages = ["amr_lidar"]

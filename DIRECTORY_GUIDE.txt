@@ -1,0 +1,130 @@
+================================================================================
+ 260709_amr_lidar_calib_ws  —  DIRECTORY GUIDE
+ What every folder is for, and the philosophy behind the layout.
+================================================================================
+
+--------------------------------------------------------------------------------
+ ORGANIZING PHILOSOPHY  (why it's shaped this way)
+--------------------------------------------------------------------------------
+Adapted from the FITO_AMR_ros2_ws workspace conventions, scaled to a small
+Windows/Python toolset.
+
+  1. SEPARATE BY LIFECYCLE & PURPOSE, not by file type.
+     The top level answers "what ROLE does this play?" — code that ships
+     (amr_lidar/), a runnable sub-app (apps/), read-only vendor material
+     (reference/), generated outputs (artifacts/), knowledge (docs/),
+     helpers (scripts/, tools/), and disposable runtime state (logs/, keys/).
+     You should be able to guess where a thing lives from what it DOES.
+
+  2. SSOT — Single Source of Truth.
+     Every fact/rule lives in exactly ONE place. Entry points (README.md,
+     this guide) LINK to the source; they never copy it. Change a thing once.
+
+  3. docs/ IS DOMAIN-PARTITIONED.
+     Each kind of record gets its own folder (worklog, issues_and_fixes,
+     protocol, code_updates). Adding a new kind = new folder + one index line
+     in docs/README.md. Time-ordered records are newest-on-top.
+
+  4. READ-ONLY EXTERNAL MATERIAL IS QUARANTINED in reference/.
+     Vendor PDFs / specs are never edited and never mixed with our own docs.
+     Cite them by name + page; verify claims against them (manual-first).
+
+  5. SELF-DOCUMENTING.
+     The layout is explained here and indexed in README.md; a newcomer needs
+     no tribal knowledge to navigate.
+
+--------------------------------------------------------------------------------
+ TOP-LEVEL MAP
+--------------------------------------------------------------------------------
+
+amr_lidar/            THE PACKAGE — production Python that "ships". Importable as
+                      `python -m amr_lidar.<module>`. This is the core deliverable.
+                        seer_client.py   SEER API TCP/JSON client + beam->base_link
+                                         transform (shared by everything).
+                        viewer.py        Live matplotlib viewer (reads SEER API直접).
+                        ms3_emitter.py   Re-emits SEER scans as SICK "MS3 " UDP so the
+                                         calibration app can receive them (no creds).
+                        relay_server.py  UDP publishing relay w/ id/pw auth (fan-out).
+                        relay_client.py  Authenticated UDP subscriber + live view.
+                        __init__.py
+
+apps/                 SELF-CONTAINED SUB-PROJECTS (run on their own, not imported by
+                      amr_lidar/). Analogous to FITO's projects/.
+                        lidar_2d_calibration/   The 2D LiDAR ICP calibration GUI
+                                         (PySide6). A MODIFIED copy — see docs/
+                                         issues_and_fixes/003 (paintEvent crash fix,
+                                         40 m range cap, auto-fit view). Run via
+                                         scripts/run_calibration_app.bat.
+
+scripts/              RUNNABLE LAUNCHERS (.bat) — one-click entry points. No logic
+                      of their own; they just call the package / app with the right
+                      args. See COMMANDS.txt for the equivalent raw commands.
+                        run_lidar_bridge.bat    PERMANENT dock: broadcast MS3 to the
+                                                subnet, auto-restart (start this once)
+                        run_viewer.bat          direct SEER-API viewer
+                        run_ms3_emitter.bat     feed the calibration app (MS3 UDP, unicast)
+                        run_relay_server.bat    start the authenticated UDP relay
+                        run_relay_client.bat    subscribe to the relay
+                        run_calibration_app.bat launch the calibration GUI
+
+tools/                STANDALONE DIAGNOSTICS from the investigation (archival).
+                      One-off probes, not part of the shipping package.
+                        seer_discovery.py, nanoscan3_udp_probe.py, cola2_probe.py,
+                        ssh_recon.py, fetch_scan_snapshot.py,
+                        build_worldframe_payload.py, build_scan_view_html.py
+
+reference/            READ-ONLY EXTERNAL VENDOR MATERIAL. Never edited. SSOT for
+                      manuals/specs we cite (cite by filename + page; verify claims
+                      against these, don't guess — "manual-first").
+                        seer-api.pdf                              SEER controller API spec
+                        seer-api-text.txt                         extracted text (grep-able)
+                        dataSheet_TIM320-0131000S02_1069933_en.pdf   TiM320 datasheet (exact model)
+                        operating_instructions_tim3xx_2d_lidar_sensors_en_im0097598.pdf
+                                                                  SICK TiM3xx operating instructions
+
+artifacts/            GENERATED OUTPUTS (disposable / reproducible). Not source.
+                        amr_scan_view.html      RViz-style snapshot visualization
+                        scan_snapshot.json      captured SEER pose+laser+stations
+                        scan_worldframe.json    world-frame point payload
+
+docs/                 KNOWLEDGE & RECORDS, domain-partitioned. Start at docs/README.md.
+                        README.md               index of doc domains (SSOT map)
+                        protocol/README.md      UDP relay + MS3 wire-format spec
+                        worklog/YYYY/MM/*.md     dated work logs (newest on top)
+                        issues_and_fixes/        bug/fix records (NNN-*.md + rollup)
+                        code_updates/            file-level change log
+
+keys/                 SECRETS — SSH keypair generated for the AMR PC (.5).
+                      GITIGNORED. Never commit.
+
+logs/                 RUNTIME LOGS & CAPTURES (relay/viewer/app logs, pktmon capture).
+                      GITIGNORED. Safe to delete anytime.
+
+session_scratch/      RAW WORKING FILES from the build session (scratchpad probes,
+                      repro/test harnesses, task logs) kept for provenance. Not part
+                      of the shipping toolset; polished versions live in tools/ and
+                      amr_lidar/. GITIGNORED. Disposable.
+
+README.md             SSOT ENTRY POINT — what this workspace is + how to run it.
+                      Links out; does not duplicate this guide.
+DIRECTORY_GUIDE.txt   This file.
+COMMANDS.txt          Organized reference of terminal commands used/needed.
+CONNECTIONS.txt       All LiDAR/UDP connection endpoints + credentials in one place
+                      (UDP relay id/pw, emitter ports, SEER API, sensor IPs).
+                      GITIGNORED — holds credentials; never commit.
+pyproject.toml        Package metadata + console entry points.
+requirements.txt      numpy, matplotlib (+ PySide6 for the calibration app).
+.gitignore            Ignores logs/, keys/, __pycache__, captures.
+
+--------------------------------------------------------------------------------
+ WHERE DO I PUT A NEW ...?
+--------------------------------------------------------------------------------
+  new shipping feature ....... amr_lidar/<module>.py
+  new standalone GUI/app ..... apps/<name>/
+  new one-off probe/script ... tools/<name>.py
+  vendor manual / datasheet .. reference/<vendor>-<product>.pdf
+  generated chart/report ..... artifacts/
+  a bug you fixed ............ docs/issues_and_fixes/NNN-<slug>.md (+ rollup)
+  what you did today ......... docs/worklog/YYYY/MM/YYYY-MM-DD.md
+  a new KIND of record ....... docs/<domain>/ + one line in docs/README.md
+================================================================================

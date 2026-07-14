@@ -1,0 +1,107 @@
+================================================================================
+ 260709_amr_lidar_calib_ws  —  COMMANDS
+ An organized reference of the terminal commands used to build & operate this
+ workspace. Grouped by purpose. PowerShell/CMD unless noted; Python is 3.14.
+ Robot: SeerRobotics Foil_A082  |  WiFi 192.168.44.82  |  wired 192.168.192.5
+================================================================================
+
+--------------------------------------------------------------------------------
+ 0. ENVIRONMENT SETUP  (once)
+--------------------------------------------------------------------------------
+  python -m pip install numpy matplotlib PySide6
+  # netifaces is optional (discover tool only) and needs MSVC to build — skip.
+  python -m pip install -r requirements.txt
+
+--------------------------------------------------------------------------------
+ 1. NETWORK — connect this PC to the AMR
+--------------------------------------------------------------------------------
+  # Wired robot LAN: give the USB-C adapter a static IP on the robot subnet.
+  # (adapter interface index 38 = "이더넷 2" / Realtek USB FE)
+  netsh interface ipv4 add address name=38 address=192.168.192.13 mask=255.255.255.0
+
+  # Show adapters / addresses
+  ipconfig /all
+  netsh interface ipv4 show interfaces
+
+  # WiFi path needs no setup — this PC is already 192.168.44.21, robot is .82.
+
+--------------------------------------------------------------------------------
+ 2. NETWORK — discovery & reachability
+--------------------------------------------------------------------------------
+  ping -n 3 192.168.192.5           # wired controller
+  ping -n 3 192.168.44.82           # WiFi (same robot)
+  ping -n 2 192.168.192.100         # front 2D LiDAR
+  ping -n 2 192.168.192.101         # rear  2D LiDAR
+  arp -a                            # neighbours / MACs on each interface
+
+  # TCP port check (Python one-liner; no nmap needed)
+  python -c "import socket;s=socket.socket();s.settimeout(1);print(s.connect_ex(('192.168.192.5',19204)))"
+
+  # Passive packet capture on the wire (admin) — find who talks to whom
+  pktmon start --capture --pkt-size 256 --file-name cap.etl
+  pktmon stop
+  pktmon etl2txt cap.etl --out cap.txt
+
+--------------------------------------------------------------------------------
+ 3. SEER API  (the LiDAR data path — TCP 19204, no credentials)
+--------------------------------------------------------------------------------
+  # Quick identity + laser query (uses the package client)
+  python -c "from amr_lidar.seer_client import SeerLaserClient as C; import json; \
+             print(json.dumps(C('192.168.44.82').get_lasers().get('ret_code')))"
+  # Ports: 19204 status | 19205 control | 19206 nav | 19207 config | 19210 other
+  # Message 1009 = laser, 1004 = pose, 1300 = maps, 1301 = stations.
+
+--------------------------------------------------------------------------------
+ 4. RUN THE TOOLS  (from the workspace root)
+--------------------------------------------------------------------------------
+  # A) Direct live viewer
+  python -m amr_lidar.viewer 192.168.44.82
+  python -m amr_lidar.viewer 192.168.192.5 --hz 8 --range 10
+
+  # B) Feed the calibration app as SICK MS3 UDP (no credentials)
+  python -m amr_lidar.ms3_emitter --seer 192.168.44.82 \
+         --front 192.168.44.21:6060 --rear 192.168.44.21:6061 --hz 10
+  #   then in the app's Network(UDP) panel: Front 192.168.44.21:6060,
+  #   Rear 192.168.44.21:6061 -> Reconnect
+
+  # C) Authenticated UDP relay (fan-out to many clients)
+  python -m amr_lidar.relay_server --seer 192.168.44.82 --port 6900 --id amr --pw lidar2026
+  python -m amr_lidar.relay_client 192.168.44.21 --port 6900 --id amr --pw lidar2026
+  python -m amr_lidar.relay_client 192.168.44.21 --no-gui        # stats only
+
+  # D) Calibration GUI  (start the MS3 emitter first)
+  cd apps\lidar_2d_calibration && python app.py
+
+  # One-click equivalents:  scripts\run_viewer.bat | run_ms3_emitter.bat |
+  #   run_relay_server.bat | run_relay_client.bat | run_calibration_app.bat
+
+--------------------------------------------------------------------------------
+ 5. 2D LiDAR — direct SICK probing  (diagnostics only; not the data path)
+--------------------------------------------------------------------------------
+  python tools\nanoscan3_udp_probe.py     # listen for "MS3 " UDP on 6060/6061
+  python tools\cola2_probe.py             # CoLa2 CreateSession to .100/.101:2122
+  python apps\lidar_2d_calibration\tools\discover.py   # app's own discovery
+
+--------------------------------------------------------------------------------
+ 6. SSH to the AMR PC (.5)  (Ubuntu; key-auth only, password disabled)
+--------------------------------------------------------------------------------
+  ssh-keygen -t ed25519 -f keys\amr_ed25519 -N ""     # generate keypair
+  # authorize keys\amr_ed25519.pub on .5, then:
+  ssh -i keys\amr_ed25519 <user>@192.168.192.5
+
+--------------------------------------------------------------------------------
+ 7. GIT  (nested repo: 260709_amr_lidar_calib_ws/.git)
+--------------------------------------------------------------------------------
+  git status
+  git add <specific/paths>          # never `git add -A` (one work unit = one commit)
+  git commit -m "<scope>: <what>"
+  git push origin main
+
+--------------------------------------------------------------------------------
+ NOTES
+--------------------------------------------------------------------------------
+ - Keep SEER poll/publish rate <= 10 Hz (API wants >=100 ms between requests).
+ - Bash tool mangles single-dash flags in Git Bash; use `ipconfig //all` there,
+   or run these in PowerShell/CMD as written.
+ - The LiDAR needs NO id/pw — those only gate the optional UDP relay (section 4C).
+================================================================================

@@ -1,0 +1,102 @@
+================================================================================
+ LiDAR / UDP CONNECTION CREDENTIALS & ENDPOINTS   (single gathered reference)
+ Robot: SeerRobotics Foil_A082  (id 400046001450424237323220, fw v3.4.5.22)
+ LOCAL FILE — gitignored. Contains credentials; do not commit or share.
+================================================================================
+
+THIS PC
+  WiFi  interface : 192.168.44.21
+  Wired interface : 192.168.192.13   (USB-C adapter, static, mask 255.255.255.0)
+
+################################################################################
+ >>> PERMANENT LiDAR DOCK  (start once, always available) <<<
+################################################################################
+  Run:  scripts\run_lidar_bridge.bat      (auto-restarts; keep the window open)
+  It BROADCASTS the LiDAR as SICK MS3 UDP to the whole WiFi subnet, so ANY
+  machine (this PC or another on 192.168.44.x) can dock WITHOUT knowing the
+  LiDAR IP and WITHOUT the "Find" button.
+
+    DOCK HERE  ->  port 6060 = front , 6061 = rear   (bind 0.0.0.0)
+    Broadcast addr : 192.168.44.255 : 6060 / 6061     (only the PORT must match)
+
+  In the calibration app's Network(UDP) panel, enter any ip with those ports,
+  e.g.  Front 192.168.44.21:6060   Rear 192.168.44.21:6061  -> Reconnect.
+  (Verified: a 0.0.0.0-bound receiver gets 520 pts/scan from the broadcast.)
+################################################################################
+
+--------------------------------------------------------------------------------
+ 1) UDP RELAY   (amr_lidar.relay_server)  ***HAS CREDENTIALS***
+--------------------------------------------------------------------------------
+  Purpose : re-publishes the SEER LiDAR over UDP to authenticated subscribers.
+  Transport : UDP, custom "LDR1" binary frames  (see docs/protocol/README.md)
+
+    >>> ID        : amr
+    >>> PASSWORD  : lidar2026
+    >>> UDP PORT  : 6900
+
+  Server binds 0.0.0.0:6900 — reachable on either of THIS PC's IPs above.
+  Subscription lease : 10 s (client pings to renew).
+
+  Start the relay (on this PC):
+    python -m amr_lidar.relay_server --seer 192.168.44.82 --port 6900 --id amr --pw lidar2026
+  Connect a client (from anywhere on the network):
+    python -m amr_lidar.relay_client 192.168.44.21 --port 6900 --id amr --pw lidar2026
+    python -m amr_lidar.relay_client 192.168.44.21 --no-gui        # stats only
+  Launchers: scripts\run_relay_server.bat , scripts\run_relay_client.bat
+
+  NOTE: these credentials are set by --id / --pw on the server. Change them there;
+  this file must match whatever the server is started with.
+
+--------------------------------------------------------------------------------
+ 2) CALIBRATION APP FEED  (amr_lidar.ms3_emitter)  — NO credentials
+--------------------------------------------------------------------------------
+  Purpose : streams the SEER LiDAR to the calibration GUI as SICK "MS3 " UDP.
+  The app's Network(UDP) panel takes ONLY Front + Rear, each as ONE field.
+
+    FIELD FORMAT : <ip>:<port>        e.g. 192.168.192.100:6060  (format example only)
+
+    Enter in the app:
+      Front : 192.168.44.21:6060      (this PC's receiving IP : front port)
+      Rear  : 192.168.44.21:6061      (this PC's receiving IP : rear  port)
+    Then click Reconnect.
+
+  Which IP goes in the field: the IP the emitter sends TO = this PC (192.168.44.21).
+  The app binds 0.0.0.0 and keys sensors by PORT, so only the port must match the
+  emitter's --front/--rear ports; use 127.0.0.1 instead of 192.168.44.21 if the
+  emitter is targeting localhost.
+
+  Start the emitter, then enter those in the app and click Reconnect:
+    python -m amr_lidar.ms3_emitter --seer 192.168.44.82 --front 192.168.44.21:6060 --rear 192.168.44.21:6061 --hz 10
+  Launcher: scripts\run_ms3_emitter.bat
+
+--------------------------------------------------------------------------------
+ 3) SEER ROBOT API  (the LiDAR data SOURCE)  — NO credentials
+--------------------------------------------------------------------------------
+  Open TCP/JSON API on the robot network. Just the IP + port; no login.
+
+    WiFi  : 192.168.44.82 : 19204     (same robot as wired)
+    Wired : 192.168.192.5 : 19204
+    Ports : 19204 status | 19205 control | 19206 nav | 19207 config | 19210 other
+    LiDAR : message 1009 (robot_status_laser_req) -> FrontLiDAR / RearLiDAR
+
+--------------------------------------------------------------------------------
+ 4) 2D LiDAR SENSORS — direct  (4x SICK TiM320-0131000S02)  — NO login for read
+--------------------------------------------------------------------------------
+  These unicast their raw MS3 UDP to the AMR PC (.5), NOT to this laptop. Direct
+  use needs SICK Safety Designer or a CoLa2 config change — not the normal path.
+
+    Front sensor : 192.168.192.100    UDP 6060 (MS3) | CoLa2 config TCP 2122
+    Rear  sensor : 192.168.192.101    UDP 6061 (MS3) | CoLa2 config TCP 2122
+
+--------------------------------------------------------------------------------
+ 5) AMR ONBOARD PC (.5) — SSH  (not UDP; for reference)
+--------------------------------------------------------------------------------
+    Host    : 192.168.192.5   (Ubuntu, OpenSSH 7.6p1)
+    Auth    : PUBLIC KEY ONLY (password login disabled server-side)
+    Our key : keys\amr_ed25519(.pub)  — authorize the .pub on .5 to log in
+
+================================================================================
+ QUICK ANSWER — "what are the UDP relay credentials?"
+   host = this PC (192.168.44.21 / 192.168.192.13)   port = 6900
+   id   = amr        password = lidar2026
+================================================================================
